@@ -66,4 +66,11 @@ build/
 # Secrets
 *.key
 *.pem
-.env.local
+.env.localbackend/fix_*.py
+
+
+# backend
+backend/test_*.py
+backend/venv*/
+*.whl
+
