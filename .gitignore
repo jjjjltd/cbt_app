@@ -54,6 +54,7 @@ __pycache__/
 training.db
 venv/
 .env
+*.env.*
 
 # Flutter
 .dart_tool/

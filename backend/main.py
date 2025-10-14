@@ -18,11 +18,16 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 import qrcode
 import os
+from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv
 
 app = FastAPI(title="Motorcycle Training Backend")
 
 # Security
-SECRET_KEY = secrets.token_urlsafe(32)  # TODO: Move to environment variable
+SECRET_KEY = os.getenv('SECRET_KEY', secrets.token_urlsafe(32))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
@@ -36,6 +41,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # ============================================================================
@@ -143,10 +149,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             raise HTTPException(status_code=401, detail="User not found")
         
         return dict(user)
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as e:
+        print(f"=== TOKEN EXPIRED: {e} ===")
         raise HTTPException(status_code=401, detail="Token expired")
-    except JWTError:
+    except JWTError as e:
+        print(f"=== JWT ERROR hit point: {e} ===")
         raise HTTPException(status_code=401, detail="Invalid authentication")
+    except Exception as e:
+        print(f"=== UNEXPECTED ERROR: {e} ===")
+        raise HTTPException(status_code=401, detail=f"Auth error: {str(e)}")
 
 def require_admin(current_user: dict = Depends(get_current_user)):
     if not current_user.get('is_admin'):
@@ -226,7 +237,7 @@ async def register(user: UserRegister, current_admin: dict = Depends(require_adm
         conn.close()
         
         # Create token
-        access_token = create_access_token({"sub": user_id})
+        access_token = create_access_token({"sub": str(user_id)})
         
         # Remove password hash from response
         new_user.pop('password_hash', None)
@@ -268,7 +279,7 @@ async def login(credentials: UserLogin):
         conn.close()
         
         # Create token
-        access_token = create_access_token({"sub": user['user_id']})
+        access_token = create_access_token({"sub": str(user['user_id'])})
         
         # Convert to dict and remove password
         user_dict = dict(user)
