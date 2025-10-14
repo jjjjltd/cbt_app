@@ -6,7 +6,7 @@ import 'instructor/instructor_dashboard.dart';
 class LoginScreen extends StatefulWidget {
   final AuthService authService;
 
-  const LoginScreen({Key? key, required this.authService}) : super(key: key);
+  const LoginScreen({super.key, required this.authService});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
