@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:training_app/screens/admin/manage_users_screen.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/api_service.dart';
 import '../login_screen.dart';
 import 'add_certificate_batch_screen.dart';
 import 'register_user_screen.dart';
-
+import 'manage_users_screen.dart';
 class AdminDashboard extends StatefulWidget {
   final AuthService authService;
 
@@ -129,14 +130,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
               childAspectRatio: 1.5,
               children: [
                 _buildActionCard(
-                  icon: Icons.person_add,
-                  title: 'Register User',
+                  icon: Icons.two_wheeler,
+                  title: 'Manage Users',
                   color: Colors.blue,
                   onTap: () async {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RegisterUserScreen(
+                        builder: (context) => ManageUsersScreen(
                           authService: widget.authService,
                         ),
                       ),
