@@ -611,6 +611,26 @@ async def add_student_to_session(session_id: int, student: StudentCreate,
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
+# TASK CONFIGURATION (ADMIN ONLY)
+# ============================================================================
+@app.get("/admin/tasks")
+async def get_all_tasks(current_admin: dict = Depends(require_admin)):
+    """Get all task configurations (admin only)"""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        
+        c.execute("""SELECT * FROM task_configuration 
+                     ORDER BY session_type, sequence""")
+        
+        tasks = [dict(row) for row in c.fetchall()]
+        conn.close()
+        
+        return {"tasks": tasks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
 # FACE VERIFICATION (existing)
 # ============================================================================
 
