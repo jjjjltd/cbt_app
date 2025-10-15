@@ -6,11 +6,12 @@ import 'register_user_screen.dart';
 import 'add_certificate_batch_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'manage_tasks_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   final AuthService authService;
 
-  const AdminDashboard({Key? key, required this.authService}) : super(key: key);
+  const AdminDashboard({super.key, required this.authService});
 
   @override
   State<AdminDashboard> createState() => _AdminDashboardState();
@@ -33,7 +34,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   bool _usersExpanded = false;
   bool _certsExpanded = false;
   bool _tasksExpanded = false;
-  Map<String, bool> _taskTypeExpanded = {};
+  final Map<String, bool> _taskTypeExpanded = {};
 
   @override
   void initState() {
@@ -535,37 +536,54 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ExpansionTile(
-        title: Text(
-          sessionType,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text('${tasks.length} tasks'),
-        initiallyExpanded: isExpanded,
-        onExpansionChanged: (expanded) {
-          setState(() {
-            _taskTypeExpanded[sessionType] = expanded;
-          });
-        },
-        children: tasks.map((task) {
-          return ListTile(
-            dense: true,
-            leading: CircleAvatar(
-              radius: 12,
-              child: Text(
-                '${task['sequence'] ?? 0}',
-                style: const TextStyle(fontSize: 10),
+      child: InkWell(
+        onTap: () async {
+          final needsRefresh = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ManageTasksScreen(
+                authService: widget.authService,
+                sessionType: sessionType,
+                tasks: tasks,
               ),
             ),
-            title: Text(
-              task['task_description'] ?? 'Unknown',
-              style: const TextStyle(fontSize: 14),
-            ),
-            trailing: task['mandatory'] == true || task['mandatory'] == 1
-                ? const Icon(Icons.star, size: 16, color: Colors.orange)
-                : null,
           );
-        }).toList(),
+          if (needsRefresh == true) {
+            _loadTasks();
+          }
+        },
+        child: ExpansionTile(
+          title: Text(
+            sessionType,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text('${tasks.length} tasks'),
+          initiallyExpanded: isExpanded,
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _taskTypeExpanded[sessionType] = expanded;
+            });
+          },
+          children: tasks.map((task) {
+            return ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                radius: 12,
+                child: Text(
+                  '${task['sequence'] ?? 0}',
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+              title: Text(
+                task['task_description'] ?? 'Unknown',
+                style: const TextStyle(fontSize: 14),
+              ),
+              trailing: task['mandatory'] == true || task['mandatory'] == 1
+                  ? const Icon(Icons.star, size: 16, color: Colors.orange)
+                  : null,
+            );
+          }).toList(),
+        ),
       ),
     );
   }
