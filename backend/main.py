@@ -629,7 +629,43 @@ async def get_all_tasks(current_admin: dict = Depends(require_admin)):
         return {"tasks": tasks}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+# ============================================================================
+# TASK CONFIGURATION WITHIN CERTIFICATE TYPE (ADMIN ONLY)
+# ============================================================================
 
+@app.post("/admin/tasks/{session_type}")
+async def update_tasks(session_type: str, data: dict, 
+                      current_admin: dict = Depends(require_admin)):
+    """Update task configuration for a session type (admin only)"""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        
+        tasks = data.get('tasks', [])
+        
+        # Delete existing tasks for this session type
+        c.execute("DELETE FROM task_configuration WHERE session_type = ?", 
+                  (session_type,))
+        
+        # Insert updated tasks
+        for task in tasks:
+            c.execute("""INSERT INTO task_configuration 
+                         (session_type, sequence, task_id, task_description, mandatory)
+                         VALUES (?, ?, ?, ?, ?)""",
+                      (session_type,
+                       task['sequence'],
+                       task['task_id'],
+                       task['task_description'],
+                       task['mandatory']))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"status": "success", "message": f"Tasks updated for {session_type}"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # ============================================================================
 # FACE VERIFICATION (existing)
 # ============================================================================

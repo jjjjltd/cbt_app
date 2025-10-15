@@ -6,8 +6,7 @@ import 'add_certificate_batch_screen.dart';
 class ManageCertificatesScreen extends StatefulWidget {
   final AuthService authService;
 
-  const ManageCertificatesScreen({Key? key, required this.authService})
-      : super(key: key);
+  const ManageCertificatesScreen({super.key, required this.authService});
 
   @override
   State<ManageCertificatesScreen> createState() =>
