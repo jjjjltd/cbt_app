@@ -42,18 +42,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success']) {
       final user = result['user'];
-      
+
       // Navigate based on role
       if (user.isAdmin) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => AdminDashboard(authService: widget.authService),
+            builder: (context) =>
+                AdminDashboard(authService: widget.authService),
           ),
         );
       } else if (user.isInstructor) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => InstructorDashboard(authService: widget.authService),
+            builder: (context) =>
+                InstructorDashboard(authService: widget.authService),
           ),
         );
       } else {
@@ -63,10 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['error']),
-          backgroundColor: Colors.blue,
-        ),
+        SnackBar(content: Text(result['error']), backgroundColor: Colors.blue),
       );
     }
   }
@@ -86,30 +85,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo/Icon
-                  const Icon(
-                    Icons.motorcycle,
-                    size: 80,
-                    color: Colors.blue,
-                  ),
+                  const Icon(Icons.motorcycle, size: 80, color: Colors.blue),
                   const SizedBox(height: 16),
-                  
+
                   // Title
                   const Text(
                     'Motorcycle Training',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Instructor Portal',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 48),
 
@@ -178,14 +167,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(fontSize: 16),
-                          ),
+                        : const Text('Login', style: TextStyle(fontSize: 16)),
                   ),
                   const SizedBox(height: 16),
 

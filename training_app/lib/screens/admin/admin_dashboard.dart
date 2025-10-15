@@ -7,6 +7,7 @@ import 'add_certificate_batch_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'manage_tasks_screen.dart';
+import 'company_settings_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   final AuthService authService;
@@ -19,17 +20,17 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   late ApiService _apiService;
-  
+
   // Data
   List<dynamic> _users = [];
   List<dynamic> _certificateBatches = [];
   Map<String, List<dynamic>> _tasksByType = {};
-  
+
   // Loading states
   bool _isLoadingUsers = false;
   bool _isLoadingCerts = false;
   bool _isLoadingTasks = false;
-  
+
   // Expansion states
   bool _usersExpanded = false;
   bool _certsExpanded = false;
@@ -51,7 +52,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> _loadUsers() async {
     setState(() => _isLoadingUsers = true);
-    
+
     try {
       final response = await http.get(
         Uri.parse('http://localhost:8000/admin/users'),
@@ -74,9 +75,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> _loadCertificates() async {
     setState(() => _isLoadingCerts = true);
-    
+
     final result = await _apiService.getCertificateInventory();
-    
+
     if (result['success']) {
       setState(() {
         _certificateBatches = result['data']['batches'] ?? [];
@@ -89,7 +90,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> _loadTasks() async {
     setState(() => _isLoadingTasks = true);
-    
+
     try {
       final response = await http.get(
         Uri.parse('http://localhost:8000/admin/tasks'),
@@ -99,7 +100,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final tasks = data['tasks'] as List<dynamic>? ?? [];
-        
+
         // Group by session type
         final Map<String, List<dynamic>> grouped = {};
         for (var task in tasks) {
@@ -109,7 +110,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           }
           grouped[type]!.add(task);
         }
-        
+
         setState(() {
           _tasksByType = grouped;
           _isLoadingTasks = false;
@@ -122,13 +123,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-  int get _activeUserCount => _users.where((u) => u['status'] == 'ACTIVE').length;
-  
-  int get _activeBatchCount => _certificateBatches.where((b) => b['status'] == 'ACTIVE').length;
-  
+  int get _activeUserCount =>
+      _users.where((u) => u['status'] == 'ACTIVE').length;
+
+  int get _activeBatchCount =>
+      _certificateBatches.where((b) => b['status'] == 'ACTIVE').length;
+
   int get _totalCertsRemaining => _certificateBatches
       .where((b) => b['status'] == 'ACTIVE')
-      .fold<int>(0, (sum, b) => sum + ((b['certificates_remaining'] ?? 0) as int));
+      .fold<int>(
+        0,
+        (sum, b) => sum + ((b['certificates_remaining'] ?? 0) as int),
+      );
 
   void _logout() {
     widget.authService.logout();
@@ -147,14 +153,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllData,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAllData),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
       body: RefreshIndicator(
@@ -198,6 +198,39 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
               ),
+
+              // Begin insertion
+              const SizedBox(height: 24),
+
+              // Quick Settings
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CompanySettingsScreen(
+                              authService: widget.authService,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.business),
+                      label: const Text('Company Settings'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              //End insertion
               const SizedBox(height: 24),
 
               // Users Expansion Panel
@@ -266,9 +299,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => RegisterUserScreen(
-                          authService: widget.authService,
-                        ),
+                        builder: (context) =>
+                            RegisterUserScreen(authService: widget.authService),
                       ),
                     );
                     _loadUsers();
@@ -290,8 +322,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildUserTile(Map<String, dynamic> user) {
     final isAdmin = user['is_admin'] == 1 || user['is_admin'] == true;
-    final isInstructor = user['is_instructor'] == 1 || user['is_instructor'] == true;
-    
+    final isInstructor =
+        user['is_instructor'] == 1 || user['is_instructor'] == true;
+
     String role = '';
     Color roleColor = Colors.grey;
     if (isAdmin && isInstructor) {
@@ -404,7 +437,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final remaining = batch['certificates_remaining'] ?? 0;
     final total = batch['batch_size'] ?? 25;
     final percentage = total > 0 ? remaining / total : 0.0;
-    
+
     Color statusColor = Colors.green;
     if (percentage < 0.2) {
       statusColor = Colors.red;
@@ -504,8 +537,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   )
                 else
-                  ..._tasksByType.entries.map((entry) =>
-                      _buildTaskTypePanel(entry.key, entry.value)),
+                  ..._tasksByType.entries.map(
+                    (entry) => _buildTaskTypePanel(entry.key, entry.value),
+                  ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   onPressed: () {
