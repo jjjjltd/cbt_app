@@ -55,6 +55,7 @@ training.db
 venv/
 .env
 *.env.*
+Photos Example/
 
 # Flutter
 .dart_tool/

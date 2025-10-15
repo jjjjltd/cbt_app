@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/auth_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -7,7 +10,8 @@ import 'register_user_screen.dart';
 class ManageUsersScreen extends StatefulWidget {
   final AuthService authService;
 
-  const ManageUsersScreen({super.key, required this.authService});
+  const ManageUsersScreen({Key? key, required this.authService})
+    : super(key: key);
 
   @override
   State<ManageUsersScreen> createState() => _ManageUsersScreenState();
@@ -42,17 +46,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       } else {
         setState(() => _isLoading = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to load users')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Failed to load users')));
         }
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -60,18 +64,23 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   List<dynamic> get _filteredUsers {
     if (_filterRole == 'ALL') return _users;
     if (_filterRole == 'ADMIN') {
-      return _users.where((u) => u['is_admin'] == 1 || u['is_admin'] == true).toList();
+      return _users
+          .where((u) => u['is_admin'] == 1 || u['is_admin'] == true)
+          .toList();
     }
     if (_filterRole == 'INSTRUCTOR') {
-      return _users.where((u) => u['is_instructor'] == 1 || u['is_instructor'] == true).toList();
+      return _users
+          .where((u) => u['is_instructor'] == 1 || u['is_instructor'] == true)
+          .toList();
     }
     return _users;
   }
 
   String _getRoleBadge(Map<String, dynamic> user) {
     final isAdmin = user['is_admin'] == 1 || user['is_admin'] == true;
-    final isInstructor = user['is_instructor'] == 1 || user['is_instructor'] == true;
-    
+    final isInstructor =
+        user['is_instructor'] == 1 || user['is_instructor'] == true;
+
     if (isAdmin && isInstructor) return 'Admin + Instructor';
     if (isAdmin) return 'Admin';
     if (isInstructor) return 'Instructor';
@@ -80,8 +89,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
 
   Color _getRoleColor(Map<String, dynamic> user) {
     final isAdmin = user['is_admin'] == 1 || user['is_admin'] == true;
-    final isInstructor = user['is_instructor'] == 1 || user['is_instructor'] == true;
-    
+    final isInstructor =
+        user['is_instructor'] == 1 || user['is_instructor'] == true;
+
     if (isAdmin && isInstructor) return Colors.purple;
     if (isAdmin) return Colors.red;
     if (isInstructor) return Colors.blue;
@@ -95,7 +105,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${newStatus == 'ACTIVE' ? 'Activate' : 'Deactivate'} User'),
+        title: Text(
+          '${newStatus == 'ACTIVE' ? 'Activate' : 'Deactivate'} User',
+        ),
         content: Text(
           'Are you sure you want to ${newStatus == 'ACTIVE' ? 'activate' : 'deactivate'} ${user['name']}?',
         ),
@@ -107,7 +119,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: newStatus == 'ACTIVE' ? Colors.green : Colors.red,
+              backgroundColor: newStatus == 'ACTIVE'
+                  ? Colors.green
+                  : Colors.red,
             ),
             child: Text(newStatus == 'ACTIVE' ? 'Activate' : 'Deactivate'),
           ),
@@ -127,34 +141,145 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   void _showUserDetails(Map<String, dynamic> user) {
+    final picker = ImagePicker();
+    Uint8List? signatureBytes;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(user['name']),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Email', user['email']),
-              _buildDetailRow('Role', _getRoleBadge(user)),
-              _buildDetailRow('Status', user['status']),
-              if (user['instructor_certificate_number'] != null)
-                _buildDetailRow('Cert Number', user['instructor_certificate_number']),
-              if (user['phone'] != null)
-                _buildDetailRow('Phone', user['phone']),
-              _buildDetailRow('Created', user['created_at']?.substring(0, 10) ?? 'N/A'),
-              if (user['last_login'] != null)
-                _buildDetailRow('Last Login', user['last_login']?.substring(0, 16) ?? 'Never'),
-            ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(user['name']),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDetailRow('Email', user['email']),
+                _buildDetailRow('Role', _getRoleBadge(user)),
+                _buildDetailRow('Status', user['status']),
+                if (user['instructor_certificate_number'] != null)
+                  _buildDetailRow(
+                    'Cert Number',
+                    user['instructor_certificate_number'],
+                  ),
+                if (user['phone'] != null)
+                  _buildDetailRow('Phone', user['phone']),
+                _buildDetailRow(
+                  'Created',
+                  user['created_at']?.substring(0, 10) ?? 'N/A',
+                ),
+                if (user['last_login'] != null)
+                  _buildDetailRow(
+                    'Last Login',
+                    user['last_login']?.substring(0, 16) ?? 'Never',
+                  ),
+
+                const Divider(height: 24),
+
+                // Signature Section
+                const Text(
+                  'Instructor Signature',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'For certificates',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+
+                if (signatureBytes != null)
+                  Container(
+                    height: 100,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(signatureBytes!, fit: BoxFit.contain),
+                    ),
+                  )
+                else if (user['signature_image_path'] != null)
+                  Container(
+                    height: 100,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(child: Text('Signature on file')),
+                  )
+                else
+                  Container(
+                    height: 100,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(child: Text('No signature uploaded')),
+                  ),
+                const SizedBox(height: 12),
+
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final XFile? image = await picker.pickImage(
+                      source: kIsWeb
+                          ? ImageSource.gallery
+                          : ImageSource.gallery,
+                      maxWidth: 600,
+                      maxHeight: 200,
+                      imageQuality: 90,
+                    );
+
+                    if (image != null) {
+                      final bytes = await image.readAsBytes();
+                      setDialogState(() {
+                        signatureBytes = bytes;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.upload, size: 18),
+                  label: Text(
+                    signatureBytes == null &&
+                            user['signature_image_path'] == null
+                        ? 'Upload Signature'
+                        : 'Change Signature',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            if (signatureBytes != null)
+              ElevatedButton(
+                onPressed: () {
+                  // TODO: Upload signature to backend
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Signature upload - API endpoint needed'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  Navigator.pop(context);
+                },
+                child: const Text('Save Signature'),
+              ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -186,10 +311,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       appBar: AppBar(
         title: const Text('Manage Users'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadUsers,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadUsers),
         ],
       ),
       body: Column(
@@ -200,7 +322,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             color: Colors.grey.shade100,
             child: Row(
               children: [
-                const Text('Filter: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Filter: ',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: Text('All (${_users.length})'),
@@ -209,13 +334,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: Text('Admins (${_users.where((u) => u['is_admin'] == 1 || u['is_admin'] == true).length})'),
+                  label: Text(
+                    'Admins (${_users.where((u) => u['is_admin'] == 1 || u['is_admin'] == true).length})',
+                  ),
                   selected: _filterRole == 'ADMIN',
                   onSelected: (_) => setState(() => _filterRole = 'ADMIN'),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
-                  label: Text('Instructors (${_users.where((u) => u['is_instructor'] == 1 || u['is_instructor'] == true).length})'),
+                  label: Text(
+                    'Instructors (${_users.where((u) => u['is_instructor'] == 1 || u['is_instructor'] == true).length})',
+                  ),
                   selected: _filterRole == 'INSTRUCTOR',
                   onSelected: (_) => setState(() => _filterRole = 'INSTRUCTOR'),
                 ),
@@ -228,114 +357,133 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredUsers.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No users found',
-                              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: Colors.grey[400],
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadUsers,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = filteredUsers[index];
-                            final isActive = user['status'] == 'ACTIVE';
+                        const SizedBox(height: 16),
+                        Text(
+                          'No users found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadUsers,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = filteredUsers[index];
+                        final isActive = user['status'] == 'ACTIVE';
 
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: _getRoleColor(user),
-                                  child: Text(
-                                    user['name'][0].toUpperCase(),
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                                title: Text(
-                                  user['name'],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isActive ? Colors.black : Colors.grey,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(user['email']),
-                                    const SizedBox(height: 4),
-                                    Wrap(
-                                      spacing: 4,
-                                      children: [
-                                        Chip(
-                                          label: Text(
-                                            _getRoleBadge(user),
-                                            style: const TextStyle(fontSize: 11, color: Colors.white),
-                                          ),
-                                          backgroundColor: _getRoleColor(user),
-                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          padding: EdgeInsets.zero,
-                                        ),
-                                        Chip(
-                                          label: Text(
-                                            user['status'],
-                                            style: const TextStyle(fontSize: 11),
-                                          ),
-                                          backgroundColor: isActive ? Colors.green.shade100 : Colors.red.shade100,
-                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          padding: EdgeInsets.zero,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                trailing: PopupMenuButton(
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'view',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.info, size: 20),
-                                          SizedBox(width: 8),
-                                          Text('View Details'),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'toggle',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            isActive ? Icons.block : Icons.check_circle,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(isActive ? 'Deactivate' : 'Activate'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                  onSelected: (value) {
-                                    if (value == 'view') {
-                                      _showUserDetails(user);
-                                    } else if (value == 'toggle') {
-                                      _toggleUserStatus(user);
-                                    }
-                                  },
-                                ),
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: _getRoleColor(user),
+                              child: Text(
+                                user['name'][0].toUpperCase(),
+                                style: const TextStyle(color: Colors.white),
                               ),
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+                            title: Text(
+                              user['name'],
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isActive ? Colors.black : Colors.grey,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(user['email']),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 4,
+                                  children: [
+                                    Chip(
+                                      label: Text(
+                                        _getRoleBadge(user),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      backgroundColor: _getRoleColor(user),
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    Chip(
+                                      label: Text(
+                                        user['status'],
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                      backgroundColor: isActive
+                                          ? Colors.green.shade100
+                                          : Colors.red.shade100,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            trailing: PopupMenuButton(
+                              icon: const Icon(Icons.more_vert),
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'view',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.info, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('View Details'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'toggle',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isActive
+                                            ? Icons.block
+                                            : Icons.check_circle,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        isActive ? 'Deactivate' : 'Activate',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onSelected: (value) {
+                                if (value == 'view') {
+                                  _showUserDetails(user);
+                                } else if (value == 'toggle') {
+                                  _toggleUserStatus(user);
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -344,9 +492,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => RegisterUserScreen(
-                authService: widget.authService,
-              ),
+              builder: (context) =>
+                  RegisterUserScreen(authService: widget.authService),
             ),
           );
           _loadUsers();
