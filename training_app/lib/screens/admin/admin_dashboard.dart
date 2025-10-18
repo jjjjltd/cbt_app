@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'manage_tasks_screen.dart';
 import 'company_settings_screen.dart';
+import 'manage_users_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   final AuthService authService;
@@ -300,7 +301,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            RegisterUserScreen(authService: widget.authService),
+                            ManageUsersScreen(authService: widget.authService),
                       ),
                     );
                     _loadUsers();
@@ -321,6 +322,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildUserTile(Map<String, dynamic> user) {
+    final authService = widget.authService; // ← Add this line at the top
+
     final isAdmin = user['is_admin'] == 1 || user['is_admin'] == true;
     final isInstructor =
         user['is_instructor'] == 1 || user['is_instructor'] == true;
@@ -349,14 +352,67 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         title: Text(user['name']),
-        subtitle: Text(user['email']),
-        trailing: Chip(
-          label: Text(
-            role,
-            style: const TextStyle(fontSize: 11, color: Colors.white),
-          ),
-          backgroundColor: roleColor,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        subtitle: Row(
+          children: [
+            Expanded(child: Text(user['email'])),
+            const SizedBox(width: 8),
+            Chip(
+              label: Text(
+                role,
+                style: const TextStyle(fontSize: 11, color: Colors.white),
+              ),
+              backgroundColor: roleColor,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: EdgeInsets.zero,
+            ),
+          ],
+        ),
+        trailing: Builder(
+          builder: (BuildContext context) {
+            return PopupMenuButton(
+              icon: const Icon(Icons.more_vert),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, size: 20),
+                      SizedBox(width: 8),
+                      Text('Edit User'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'toggle',
+                  child: Row(
+                    children: [
+                      Icon(
+                        user['status'] == 'ACTIVE'
+                            ? Icons.block
+                            : Icons.check_circle,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        user['status'] == 'ACTIVE' ? 'Deactivate' : 'Activate',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'edit') {
+                  _navigateToEditUser(
+                    context,
+                    user,
+                    authService,
+                  ); // ← Pass authService
+                } else if (value == 'toggle') {
+                  _toggleUserStatus(user);
+                }
+              },
+            );
+          },
         ),
       ),
     );
@@ -620,5 +676,63 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
       ),
     );
+  }
+
+  void _showUserDetailsDialog(BuildContext context, Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(user['name']),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Email: ${user['email']}'),
+            const SizedBox(height: 8),
+            Text('Status: ${user['status']}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToEditUser(
+    BuildContext context,
+    Map<String, dynamic> user,
+    dynamic authService,
+  ) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            RegisterUserScreen(authService: authService, existingUser: user),
+      ),
+    );
+    _loadAllData();
+  }
+
+  void _toggleUserStatus(Map<String, dynamic> user) async {
+    final newStatus = user['status'] == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+    // TODO: Call your backend API to update the user status
+    // Example: await widget.authService.updateUserStatus(user['id'], newStatus);
+
+    // For now, just reload all data to refresh from the backend
+    await _loadAllData();
+
+    // Show a confirmation message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('User ${user['name']} ${newStatus.toLowerCase()}'),
+        ),
+      );
+    }
   }
 }

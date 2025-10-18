@@ -5,8 +5,13 @@ import 'dart:convert';
 
 class RegisterUserScreen extends StatefulWidget {
   final AuthService authService;
+  final Map<String, dynamic>? existingUser; // ← Add this optional parameter
 
-  const RegisterUserScreen({super.key, required this.authService});
+  const RegisterUserScreen({
+    super.key,
+    required this.authService,
+    this.existingUser, // ← Add this
+  });
 
   @override
   State<RegisterUserScreen> createState() => _RegisterUserScreenState();
@@ -24,6 +29,28 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
   bool _isInstructor = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // If editing an existing user, pre-fill the form
+    if (widget.existingUser != null) {
+      final user = widget.existingUser!;
+
+      _nameController.text = user['name'] ?? '';
+      _emailController.text = user['email'] ?? '';
+      _phoneController.text = user['phone'] ?? '';
+      _certNumberController.text = user['instructor_certificate_number'] ?? '';
+
+      // Set the role checkboxes
+      _isAdmin = user['is_admin'] == 1 || user['is_admin'] == true;
+      _isInstructor =
+          user['is_instructor'] == 1 || user['is_instructor'] == true;
+
+      // Note: We don't pre-fill password when editing for security reasons
+    }
+  }
 
   @override
   void dispose() {
@@ -81,12 +108,9 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -94,9 +118,7 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register New User'),
-      ),
+      appBar: AppBar(title: const Text('Register/Edit User')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -265,7 +287,9 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(
