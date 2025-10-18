@@ -300,8 +300,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ManageUsersScreen(authService: widget.authService),
+                        builder: (context) => RegisterUserScreen(
+                          authService: widget.authService,
+                          // No existingUser parameter = "Add new" mode
+                        ),
                       ),
                     );
                     _loadUsers();
