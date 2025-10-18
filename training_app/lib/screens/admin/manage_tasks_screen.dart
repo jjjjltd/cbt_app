@@ -10,11 +10,11 @@ class ManageTasksScreen extends StatefulWidget {
   final List<dynamic> tasks;
 
   const ManageTasksScreen({
-    Key? key,
+    super.key,
     required this.authService,
     required this.sessionType,
     required this.tasks,
-  }) : super(key: key);
+  });
 
   @override
   State<ManageTasksScreen> createState() => _ManageTasksScreenState();
@@ -92,7 +92,9 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                 if (taskIdController.text.isEmpty ||
                     descriptionController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Task ID and Description required')),
+                    const SnackBar(
+                      content: Text('Task ID and Description required'),
+                    ),
                   );
                   return;
                 }
@@ -274,10 +276,7 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
       setState(() => _hasChanges = true);
     }
@@ -374,11 +373,18 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.checklist, size: 64, color: Colors.grey[400]),
+                          Icon(
+                            Icons.checklist,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'No tasks configured',
-                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(height: 8),
                           ElevatedButton.icon(
@@ -402,7 +408,10 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
                             color: Colors.red,
-                            child: const Icon(Icons.delete, color: Colors.white),
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                            ),
                           ),
                           confirmDismiss: (direction) async {
                             return await showDialog<bool>(
@@ -414,11 +423,13 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
                                     child: const Text('Cancel'),
                                   ),
                                   ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, true),
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red,
                                     ),
@@ -441,7 +452,10 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                               leading: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.drag_handle, color: Colors.grey[400]),
+                                  Icon(
+                                    Icons.drag_handle,
+                                    color: Colors.grey[400],
+                                  ),
                                   const SizedBox(width: 8),
                                   CircleAvatar(
                                     radius: 16,
@@ -452,7 +466,9 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                                   ),
                                 ],
                               ),
-                              title: Text(task['task_description'] ?? 'Unknown'),
+                              title: Text(
+                                task['task_description'] ?? 'Unknown',
+                              ),
                               subtitle: Text(
                                 task['task_id'] ?? '',
                                 style: const TextStyle(fontSize: 11),

@@ -10,8 +10,7 @@ import 'register_user_screen.dart';
 class ManageUsersScreen extends StatefulWidget {
   final AuthService authService;
 
-  const ManageUsersScreen({Key? key, required this.authService})
-    : super(key: key);
+  const ManageUsersScreen({super.key, required this.authService});
 
   @override
   State<ManageUsersScreen> createState() => _ManageUsersScreenState();
@@ -441,7 +440,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                               ],
                             ),
                             trailing: PopupMenuButton(
-                              icon: const Icon(Icons.more_vert),
                               itemBuilder: (context) => [
                                 const PopupMenuItem(
                                   value: 'view',
