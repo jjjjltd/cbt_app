@@ -18,9 +18,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _isFormValid = false; // ← Add this
 
   @override
   void dispose() {
+    _emailController.removeListener(_validateForm); // ← Add this
+    _passwordController.removeListener(_validateForm); // ← Add this
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -104,6 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Email Field
                   TextFormField(
+                    onFieldSubmitted: (_) {
+                      if (_isFormValid && !_isLoading) {
+                        _handleLogin();
+                      }
+                    },
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
@@ -125,6 +133,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Password Field
                   TextFormField(
+                    onFieldSubmitted: (_) {
+                      if (_isFormValid && !_isLoading) {
+                        _handleLogin();
+                      }
+                    },
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
@@ -155,11 +168,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Login Button
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
+                    onPressed: (_isLoading || !_isFormValid)
+                        ? null
+                        : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey,
                     ),
                     child: _isLoading
                         ? const SizedBox(
@@ -207,5 +223,29 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen to both controllers
+    _emailController.addListener(_validateForm);
+    _passwordController.addListener(_validateForm);
+  }
+
+  void _validateForm() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    // Check if both fields have text
+    final isValid = email.isNotEmpty && password.isNotEmpty;
+
+    // Only update state if the value changed
+    if (isValid != _isFormValid) {
+      setState(() {
+        _isFormValid = isValid;
+      });
+    }
   }
 }
