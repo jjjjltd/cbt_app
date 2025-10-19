@@ -600,19 +600,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Add/Edit Tasks - Coming soon'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Configure Tasks'),
+                  onPressed: _addNewCourseType,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add New Course Type'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.all(16),
                   ),
                 ),
               ],
@@ -736,5 +730,88 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
       );
     }
+  }
+
+  void _addNewCourseType() {
+    final courseTypeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Course Type'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: courseTypeController,
+              decoration: const InputDecoration(
+                labelText: 'Course Type Name',
+                hintText: 'e.g., DAS, Mod 1, Mod 2',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.characters,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Examples: CBT, DAS, MOD1, MOD2',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final courseType = courseTypeController.text.trim().toUpperCase();
+
+              if (courseType.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a course type name'),
+                  ),
+                );
+                return;
+              }
+
+              // Check if it already exists
+              if (_tasksByType.containsKey(courseType)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Course type "$courseType" already exists'),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context);
+
+              // Navigate to ManageTasksScreen with empty task list for new course type
+              final needsRefresh = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ManageTasksScreen(
+                    authService: widget.authService,
+                    sessionType: courseType,
+                    tasks: const [], // Empty list for new course type
+                  ),
+                ),
+              );
+
+              if (needsRefresh == true) {
+                _loadTasks(); // Reload to show the new course type
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
   }
 }
