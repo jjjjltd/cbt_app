@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import 'student_tasks_screen.dart';
+import 'student_photo_capture_screen.dart';
 
 class SessionDetailScreen extends StatefulWidget {
   final AuthService authService;
@@ -49,132 +50,174 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     }
   }
 
-  void _showAddStudentDialog() {
-    final nameController = TextEditingController();
-    final licenseController = TextEditingController();
-    final emailController = TextEditingController();
-    final phoneController = TextEditingController();
-    String bikeType = 'Manual';
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Student'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Student Name *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: licenseController,
-                  decoration: const InputDecoration(
-                    labelText: 'License Number *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: bikeType,
-                  decoration: const InputDecoration(
-                    labelText: 'Bike Type',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['Manual', 'Automatic'].map((type) {
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(type),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      bikeType = value!;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty ||
-                    licenseController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Name and License Number required')),
-                  );
-                  return;
-                }
-
-                Navigator.pop(context);
-
-                final result = await _apiService.addStudentToSession(
-                  sessionId: widget.sessionId,
-                  name: nameController.text,
-                  licenseNumber: licenseController.text,
-                  email: emailController.text.isEmpty
-                      ? null
-                      : emailController.text,
-                  phone: phoneController.text.isEmpty
-                      ? null
-                      : phoneController.text,
-                  bikeType: bikeType,
-                );
-
-                if (result['success']) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Student added successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  _loadSession();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(result['error']),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Add Student'),
-            ),
-          ],
-        ),
+  Future<void> _navigateToPhotoCaptureScreen() async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => StudentPhotoCaptureScreen(
+        sessionId: widget.sessionId,
       ),
-    );
+    ),
+  );
+
+  if (result != null) {
+    // Photos captured and verified, now show data entry dialog
+    _showDataEntryDialog(result);
   }
+}
+
+void _showDataEntryDialog(Map<String, dynamic> photoData) {
+  final nameController = TextEditingController();
+  final licenseController = TextEditingController();
+  final emailController = TextEditingController();
+  final phoneController = TextEditingController();
+  String bikeType = 'Manual';
+
+  // TODO: Run OCR here and pre-fill controllers
+  // For now, show empty form
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('Confirm Student Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Show verification status
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Face Match: ${photoData['match_score'].toStringAsFixed(1)}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Student Name *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter or verify name from OCR',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: licenseController,
+                decoration: const InputDecoration(
+                  labelText: 'License Number *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter or verify from OCR',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone (optional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: bikeType,
+                decoration: const InputDecoration(
+                  labelText: 'Bike Type',
+                  border: OutlineInputBorder(),
+                ),
+                items: ['Manual', 'Automatic'].map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setDialogState(() {
+                    bikeType = value!;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty ||
+                  licenseController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Name and License Number required')),
+                );
+                return;
+              }
+
+              Navigator.pop(context);
+
+              final result = await _apiService.addStudentToSession(
+                sessionId: widget.sessionId,
+                name: nameController.text,
+                licenseNumber: licenseController.text,
+                email: emailController.text.isEmpty
+                    ? null
+                    : emailController.text,
+                phone: phoneController.text.isEmpty
+                    ? null
+                    : phoneController.text,
+                bikeType: bikeType,
+              );
+
+              if (result['success']) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Student added successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                _loadSession();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(result['error']),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Add Student'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Future<void> _completeSession() async {
     final confirm = await showDialog<bool>(
@@ -295,7 +338,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   ElevatedButton.icon(
-                    onPressed: _showAddStudentDialog,
+                    onPressed: _navigateToPhotoCaptureScreen,
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Add'),
                     style: ElevatedButton.styleFrom(
