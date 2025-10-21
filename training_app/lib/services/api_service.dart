@@ -1,10 +1,23 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'auth_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 
 class ApiService {
   final AuthService authService;
-  static const String baseUrl = 'http://localhost:8000';
+  static String get baseUrl {
+    if (kIsWeb) {
+      // Web (Chrome, Edge, etc.)
+      return 'http://localhost:8000';
+    } else if (Platform.isAndroid) {
+      // Android emulator
+      return 'http://10.0.2.2:8000';
+    } else {
+      // iOS, desktop, etc.
+      return 'http://localhost:8000';
+    }
+  }
 
   ApiService(this.authService);
 
@@ -26,14 +39,12 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {
           'success': false,
-          'error': json.decode(response.body)['detail'] ?? 'Failed to add batch',
+          'error':
+              json.decode(response.body)['detail'] ?? 'Failed to add batch',
         };
       }
     } catch (e) {
@@ -49,10 +60,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {'success': false, 'error': 'Failed to get inventory'};
       }
@@ -81,14 +89,13 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {
           'success': false,
-          'error': json.decode(response.body)['detail'] ?? 'Failed to create session',
+          'error':
+              json.decode(response.body)['detail'] ??
+              'Failed to create session',
         };
       }
     } catch (e) {
@@ -104,10 +111,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {'success': false, 'error': 'Failed to get sessions'};
       }
@@ -124,10 +128,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {'success': false, 'error': 'Failed to get session'};
       }
@@ -161,14 +162,12 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {
           'success': false,
-          'error': json.decode(response.body)['detail'] ?? 'Failed to add student',
+          'error':
+              json.decode(response.body)['detail'] ?? 'Failed to add student',
         };
       }
     } catch (e) {
@@ -195,10 +194,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {'success': false, 'error': 'Failed to complete task'};
       }
@@ -225,10 +221,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {'success': false, 'error': 'Failed to update task'};
       }
@@ -245,10 +238,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         return {'success': false, 'error': 'Failed to complete session'};
       }
