@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class StudentPhotoCaptureScreen extends StatefulWidget {
   final int sessionId;
@@ -258,6 +259,21 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
               ),
             ),
 
+            // Add this right after the Verify Button
+            const SizedBox(height: 16),
+
+            // TEST OCR BUTTON
+            ElevatedButton.icon(
+              onPressed: _licensePhotoPath == null ? null : _testOCR,
+              icon: const Icon(Icons.text_fields),
+              label: const Text('TEST: Extract Text from License'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+
             // Verification Result
             if (_matchScore != null) ...[
               const SizedBox(height: 16),
@@ -313,5 +329,87 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
         ),
       ),
     );
+  }
+
+  Future<Map<String, String?>> _extractLicenceData() async {
+    if (_licensePhotoPath == null) {
+      return {};
+    }
+
+    try {
+      final inputImage = InputImage.fromFilePath(_licensePhotoPath!);
+      final textRecognizer = TextRecognizer();
+      final RecognizedText recognizedText = await textRecognizer.processImage(
+        inputImage,
+      );
+
+      // Extract all text
+      String fullText = recognizedText.text;
+
+      // Parse UK driving licence fields
+      final extractedData = _parseUKLicence(fullText);
+
+      await textRecognizer.close();
+
+      return extractedData;
+    } catch (e) {
+      print('OCR Error: $e');
+      return {};
+    }
+  }
+
+  Map<String, String?> _parseUKLicence(String text) {
+    // TODO: Parse specific fields from UK licence
+    // This is where the magic happens - we'll build this next
+
+    return {
+      'licence_number': null,
+      'surname': null,
+      'forename': null,
+      'date_of_birth': null,
+      'address': null,
+      'postcode': null,
+      'issue_date': null,
+      'expiry_date': null,
+    };
+  }
+
+  Future<void> _testOCR() async {
+    if (_licensePhotoPath == null) return;
+
+    try {
+      final inputImage = InputImage.fromFilePath(_licensePhotoPath!);
+      final textRecognizer = TextRecognizer();
+      final RecognizedText recognizedText = await textRecognizer.processImage(
+        inputImage,
+      );
+
+      await textRecognizer.close();
+
+      // Show what we found!
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('OCR Results'),
+          content: SingleChildScrollView(
+            child: SelectableText(
+              recognizedText.text.isEmpty
+                  ? 'No text found'
+                  : recognizedText.text,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('OCR Error: $e')));
+    }
   }
 }
