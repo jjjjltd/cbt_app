@@ -1,11 +1,24 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/user.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 
 class AuthService {
   // TODO: Change this to your backend URL
-  static const String baseUrl = 'http://localhost:8000';
-  
+  static String get baseUrl {
+    if (kIsWeb) {
+      // Web (Chrome, Edge, etc.)
+      return 'http://localhost:8000';
+    } else if (Platform.isAndroid) {
+      // Android emulator
+      return 'http://10.0.2.2:8000';
+    } else {
+      // iOS, desktop, etc.
+      return 'http://localhost:8000';
+    }
+  }
+
   String? _token;
   User? _currentUser;
 
@@ -18,33 +31,21 @@ class AuthService {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
+        body: json.encode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _token = data['access_token'];
         _currentUser = User.fromJson(data['user']);
-        
-        return {
-          'success': true,
-          'user': _currentUser,
-        };
+
+        return {'success': true, 'user': _currentUser};
       } else {
         final error = json.decode(response.body);
-        return {
-          'success': false,
-          'error': error['detail'] ?? 'Login failed',
-        };
+        return {'success': false, 'error': error['detail'] ?? 'Login failed'};
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Connection error: $e',
-      };
+      return {'success': false, 'error': 'Connection error: $e'};
     }
   }
 
@@ -73,21 +74,12 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _currentUser = User.fromJson(data);
-        return {
-          'success': true,
-          'user': _currentUser,
-        };
+        return {'success': true, 'user': _currentUser};
       } else {
-        return {
-          'success': false,
-          'error': 'Failed to get user info',
-        };
+        return {'success': false, 'error': 'Failed to get user info'};
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Connection error: $e',
-      };
+      return {'success': false, 'error': 'Connection error: $e'};
     }
   }
 }
