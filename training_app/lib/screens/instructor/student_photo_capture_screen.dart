@@ -241,6 +241,19 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
             ),
             const SizedBox(height: 16),
 
+            //  Temporary
+            ElevatedButton.icon(
+              onPressed: _testOCRFromFile,
+              icon: const Icon(Icons.upload_file),
+              label: const Text('TEST: Load License from Gallery'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+            ),
+
+            //  Temporary
+
             // Verify Button
             ElevatedButton.icon(
               onPressed: _isVerifying ? null : _verifyPhotos,
@@ -411,5 +424,20 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('OCR Error: $e')));
     }
+  }
+
+  Future<void> _testOCRFromFile() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery, // Pick from gallery instead of camera
+    );
+
+    if (image == null) return;
+
+    setState(() {
+      _licensePhotoPath = image.path;
+    });
+
+    // Now run OCR on it
+    _testOCR();
   }
 }
