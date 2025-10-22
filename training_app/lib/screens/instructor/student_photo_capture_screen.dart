@@ -61,18 +61,58 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
     });
 
     try {
+      print('=== FLUTTER DEBUG ${DateTime.now()} ===');
+      print('Area of API Call for Verify-Face');
+
       const backendUrl = 'http://localhost:8000/verify-face';
-
       final request = http.MultipartRequest('POST', Uri.parse(backendUrl));
-      request.files.add(
-        await http.MultipartFile.fromPath('student_photo', _studentPhotoPath!),
-      );
-      request.files.add(
-        await http.MultipartFile.fromPath('license_photo', _licensePhotoPath!),
-      );
 
+      if (kIsWeb) {
+        // Web: Read as bytes
+        final studentBytes = await http.readBytes(
+          Uri.parse(_studentPhotoPath!),
+        );
+        final licenseBytes = await http.readBytes(
+          Uri.parse(_licensePhotoPath!),
+        );
+
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'student_photo',
+            studentBytes,
+            filename: 'student.jpg',
+          ),
+        );
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'license_photo',
+            licenseBytes,
+            filename: 'license.jpg',
+          ),
+        );
+      } else {
+        // Mobile: Use file path
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'student_photo',
+            _studentPhotoPath!,
+          ),
+        );
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'license_photo',
+            _licensePhotoPath!,
+          ),
+        );
+      }
+
+      print('Sending request to: $backendUrl');
       final response = await request.send();
+      print('Response status: ${response.statusCode}');
+
       final responseData = await response.stream.bytesToString();
+      print('Response data: $responseData');
+
       final result = json.decode(responseData);
 
       setState(() {
@@ -90,23 +130,10 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
         }
       });
     } catch (e) {
+      print('Face verification error: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Verification error: $e')));
-      // For demo purposes, generate a random score
-      setState(() {
-        _matchScore = 85.0 + (DateTime.now().millisecond % 15);
-        if (_matchScore! >= 90) {
-          _verificationStatus = 'PASS - Match Verified';
-          _statusColor = Colors.green;
-        } else if (_matchScore! >= 50) {
-          _verificationStatus = 'MANUAL CHECK REQUIRED';
-          _statusColor = Colors.orange;
-        } else {
-          _verificationStatus = 'FAIL - Manual Override Required';
-          _statusColor = Colors.red;
-        }
-      });
     } finally {
       setState(() {
         _isVerifying = false;

@@ -734,30 +734,27 @@ async def verify_face(student_photo: UploadFile = File(...),
         license_encoding = license_encodings[0]
         
         # Calculate face distance (lower is better match)
-        face_distance = face_recognition.face_distance([license_encoding], student_encoding)[0]
-        
+        face_distance = float(face_recognition.face_distance([license_encoding], student_encoding)[0])  # ← Convert to float
+
         # Convert to percentage match
-        #face_distance typically 0.0 (perfect) to 1.0 (very different)
-        # We use a slightly adjusted scale for better discrimination
         match_score = max(0, min(100, (1 - face_distance) * 100))
-        
+
         # Additional quality metrics
-        tolerance = 0.6  # Default tolerance for face_recognition
-        is_match = face_distance < tolerance
-        
+        tolerance = 0.6
+        is_match = bool(face_distance < tolerance)  # ← Convert to bool
+
         return {
-            "match_score": round(match_score, 2),
-            "face_distance": round(face_distance, 3),
+            "match_score": round(float(match_score), 2),  # ← Ensure float
+            "face_distance": round(float(face_distance), 3),  # ← Ensure float
             "is_match": is_match,
             "confidence": "high" if face_distance < 0.4 else "medium" if face_distance < 0.6 else "low",
             "status": "success"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Face verification error: {str(e)}")
-
 # ============================================================================
 # TASK COMPLETION
 # ============================================================================
