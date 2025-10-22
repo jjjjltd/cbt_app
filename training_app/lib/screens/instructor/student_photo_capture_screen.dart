@@ -344,49 +344,6 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
     );
   }
 
-  Future<Map<String, String?>> _extractLicenceData() async {
-    if (_licensePhotoPath == null) {
-      return {};
-    }
-
-    try {
-      final inputImage = InputImage.fromFilePath(_licensePhotoPath!);
-      final textRecognizer = TextRecognizer();
-      final RecognizedText recognizedText = await textRecognizer.processImage(
-        inputImage,
-      );
-
-      // Extract all text
-      String fullText = recognizedText.text;
-
-      // Parse UK driving licence fields
-      final extractedData = _parseUKLicence(fullText);
-
-      await textRecognizer.close();
-
-      return extractedData;
-    } catch (e) {
-      print('OCR Error: $e');
-      return {};
-    }
-  }
-
-  Map<String, String?> _parseUKLicence(String text) {
-    // TODO: Parse specific fields from UK licence
-    // This is where the magic happens - we'll build this next
-
-    return {
-      'licence_number': null,
-      'surname': null,
-      'forename': null,
-      'date_of_birth': null,
-      'address': null,
-      'postcode': null,
-      'issue_date': null,
-      'expiry_date': null,
-    };
-  }
-
   Future<void> _testOCR() async {
     if (_licensePhotoPath == null) return;
 
@@ -399,16 +356,55 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
 
       await textRecognizer.close();
 
-      // Show what we found!
+      // Parse the extracted text
+      final parsedData = _parseUKLicence(recognizedText.text);
+
+      // Show parsed results
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('OCR Results'),
+          title: const Text('Parsed Licence Data'),
           content: SingleChildScrollView(
-            child: SelectableText(
-              recognizedText.text.isEmpty
-                  ? 'No text found'
-                  : recognizedText.text,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDataRow('Full Name', parsedData['full_name']),
+                _buildDataRow('Address', parsedData['address']),
+                _buildDataRow('Postcode', parsedData['postcode']),
+                _buildDataRow('Date of Birth', parsedData['date_of_birth']),
+                _buildDataRow('Age', parsedData['age']?.toString()),
+                if (parsedData['age_warning'] != null)
+                  Text(
+                    parsedData['age_warning'],
+                    style: const TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                _buildDataRow('Driver Number', parsedData['driver_number']),
+                _buildDataRow('Issue Date', parsedData['issue_date']),
+                _buildDataRow('Expiry Date', parsedData['expiry_date']),
+                if (parsedData['validation_warning'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      parsedData['validation_warning'],
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                const Divider(),
+                const Text(
+                  'Raw OCR Text:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                SelectableText(recognizedText.text),
+              ],
             ),
           ),
           actions: [
@@ -426,6 +422,32 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
     }
   }
 
+  Widget _buildDataRow(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value ?? 'Not found',
+              style: TextStyle(
+                color: value == null ? Colors.red : Colors.black,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _testOCRFromFile() async {
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery, // Pick from gallery instead of camera
@@ -439,5 +461,172 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
 
     // Now run OCR on it
     _testOCR();
+  }
+
+  Map<String, dynamic> _parseUKLicence(String ocrText) {
+    final lines = ocrText.split('\n').map((line) => line.trim()).toList();
+
+    Map<String, dynamic> result = {
+      'driver_number': null,
+      'surname': null,
+      'forenames': null,
+      'full_name': null,
+      'date_of_birth': null,
+      'age': null,
+      'address': null,
+      'postcode': null,
+      'issue_date': null,
+      'expiry_date': null,
+      'is_valid': null,
+      'validation_warning': null,
+    };
+
+    try {
+      // Field 6: Driver Number (format: SURNAME612185JJ9BE - 16 chars with specific pattern)
+      final driverNumberPattern = RegExp(r'[A-Z]{5}\d{6}[A-Z]{2}\d[A-Z]{2}');
+      final driverNumberMatch = driverNumberPattern.firstMatch(ocrText);
+      if (driverNumberMatch != null) {
+        result['driver_number'] = driverNumberMatch.group(0);
+      }
+
+      // Field 3: Date of Birth (format: DD.MM.YYYY)
+      final dobPattern = RegExp(r'\b(\d{2})\.(\d{2})\.(\d{4})\b');
+      final dobMatches = dobPattern.allMatches(ocrText).toList();
+
+      if (dobMatches.isNotEmpty) {
+        final dobMatch = dobMatches[0]; // First date is usually DOB
+        final day = dobMatch.group(1);
+        final month = dobMatch.group(2);
+        final year = dobMatch.group(3);
+        result['date_of_birth'] = '$day.$month.$year';
+
+        // Calculate age
+        final dob = DateTime(
+          int.parse(year!),
+          int.parse(month!),
+          int.parse(day!),
+        );
+        final today = DateTime.now();
+        int age = today.year - dob.year;
+        if (today.month < dob.month ||
+            (today.month == dob.month && today.day < dob.day)) {
+          age--;
+        }
+        result['age'] = age;
+
+        // Check if age 16 and needs automatic warning
+        if (age == 16) {
+          result['age_warning'] = 'Age 16: Automatic transmission only';
+        }
+      }
+
+      // Field 4a & 4b: Issue and Expiry Dates (subsequent dates after DOB)
+      if (dobMatches.length >= 3) {
+        // Usually: DOB, Issue Date, Expiry Date
+        final issueMatch = dobMatches[1];
+        final expiryMatch = dobMatches[2];
+
+        result['issue_date'] =
+            '${issueMatch.group(1)}.${issueMatch.group(2)}.${issueMatch.group(3)}';
+        result['expiry_date'] =
+            '${expiryMatch.group(1)}.${expiryMatch.group(2)}.${expiryMatch.group(3)}';
+
+        // Validate licence dates
+        final issueDate = DateTime(
+          int.parse(issueMatch.group(3)!),
+          int.parse(issueMatch.group(2)!),
+          int.parse(issueMatch.group(1)!),
+        );
+        final expiryDate = DateTime(
+          int.parse(expiryMatch.group(3)!),
+          int.parse(expiryMatch.group(2)!),
+          int.parse(expiryMatch.group(1)!),
+        );
+        final today = DateTime.now();
+
+        result['is_valid'] =
+            today.isAfter(issueDate) && today.isBefore(expiryDate);
+
+        if (!result['is_valid']) {
+          if (today.isBefore(issueDate)) {
+            result['validation_warning'] = '⚠️ Licence not yet valid';
+          } else {
+            result['validation_warning'] = '🚨 Licence has expired';
+          }
+        }
+      }
+
+      // Fields 1 & 2: Name (look for pattern of capitalized words)
+      // Find "DRIVING LICENCE" line and extract name components near it
+      int drivingLicenceIndex = -1;
+      for (int i = 0; i < lines.length; i++) {
+        if (lines[i].contains('DRIVING LICENCE')) {
+          drivingLicenceIndex = i;
+          break;
+        }
+      }
+
+      if (drivingLicenceIndex >= 0 && drivingLicenceIndex + 3 < lines.length) {
+        // Fields 1 & 2: Name (look for numbered fields)
+        String surname = '';
+        String forenames = '';
+
+        for (int i = 0; i < lines.length; i++) {
+          final line = lines[i].trim();
+
+          // Look for "1." followed by surname (all caps, single word usually)
+          if (line.startsWith('1.')) {
+            surname = line.replaceAll(RegExp(r'^1\.\s*'), '').trim();
+            // Take only first word if there's extra text
+            surname = surname.split(' ').first;
+          }
+
+          // Look for "2." followed by forenames
+          if (line.startsWith('2.')) {
+            forenames = line.replaceAll(RegExp(r'^2\.\s*'), '').trim();
+            // Remove any trailing non-letter characters
+            forenames = forenames.replaceAll(RegExp(r'[^A-Z\s]+$'), '').trim();
+          }
+        }
+
+        if (surname.isNotEmpty && forenames.isNotEmpty) {
+          result['surname'] = surname;
+          result['forenames'] = forenames;
+          result['full_name'] = '$forenames $surname';
+        }
+      }
+
+      // Field 8: Address and Postcode
+      // Look for line starting with "8" or "8."
+      for (int i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('8.') || lines[i].startsWith('8 ')) {
+          String addressLine = lines[i]
+              .replaceAll(RegExp(r'^8\.?\s*'), '')
+              .trim();
+
+          // Check if there's a next line that's part of the address
+          if (i + 1 < lines.length &&
+              !lines[i + 1].startsWith(RegExp(r'^\d'))) {
+            addressLine += ' ' + lines[i + 1].trim();
+          }
+
+          // Split address and postcode by last comma
+          final lastCommaIndex = addressLine.lastIndexOf(',');
+          if (lastCommaIndex > 0) {
+            result['address'] = addressLine.substring(0, lastCommaIndex).trim();
+            result['postcode'] = addressLine
+                .substring(lastCommaIndex + 1)
+                .trim();
+          } else {
+            result['address'] = addressLine;
+          }
+          break;
+        }
+      }
+    } catch (e) {
+      print('Parser error: $e');
+    }
+
+    return result;
   }
 }
