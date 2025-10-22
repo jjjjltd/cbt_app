@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'student_confirmation_screen.dart';
 
 class StudentPhotoCaptureScreen extends StatefulWidget {
   final int sessionId;
@@ -114,9 +115,6 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
   }
 
   Future<void> _proceedToDataEntry() async {
-    // TODO: Run OCR on license photo here
-    // For now, navigate back with the photos
-
     if (_matchScore == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please verify photos first')),
@@ -124,13 +122,37 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
       return;
     }
 
-    // Return the captured data
-    Navigator.pop(context, {
-      'student_photo': _studentPhotoPath,
-      'license_photo': _licensePhotoPath,
-      'match_score': _matchScore,
-      'verification_status': _verificationStatus,
-    });
+    // Run OCR and parse data
+    if (_licensePhotoPath == null) return;
+
+    try {
+      final inputImage = InputImage.fromFilePath(_licensePhotoPath!);
+      final textRecognizer = TextRecognizer();
+      final RecognizedText recognizedText = await textRecognizer.processImage(
+        inputImage,
+      );
+      await textRecognizer.close();
+
+      // Parse the licence data
+      final parsedData = _parseUKLicence(recognizedText.text);
+
+      // Navigate to confirmation screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StudentConfirmationScreen(
+            parsedData: parsedData,
+            studentPhotoPath: _studentPhotoPath!,
+            licensePhotoPath: _licensePhotoPath!,
+            sessionId: widget.sessionId,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error processing licence: $e')));
+    }
   }
 
   @override
