@@ -384,6 +384,148 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (_matchScore != null) ...[
+                        const SizedBox(height: 16),
+                        Card(
+                          color: _statusColor?.withOpacity(0.1),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  _matchScore! >= 90
+                                      ? Icons.check_circle
+                                      : _matchScore! >= 50
+                                      ? Icons.warning
+                                      : Icons.error,
+                                  size: 48,
+                                  color: _statusColor,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Match Score: ${_matchScore!.toStringAsFixed(1)}%',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _verificationStatus!,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: _statusColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Action buttons based on score
+                                if (_matchScore! >= 90) ...[
+                                  // Auto-pass: Single proceed button
+                                  ElevatedButton.icon(
+                                    onPressed: () =>
+                                        _proceedWithDecision('auto_pass'),
+                                    icon: const Icon(Icons.check),
+                                    label: const Text('Proceed'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.all(16),
+                                    ),
+                                  ),
+                                ] else if (_matchScore! >= 50) ...[
+                                  // Manual review: Confirm or Reject
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () => _proceedWithDecision(
+                                            'manual_confirm',
+                                          ),
+                                          icon: const Icon(Icons.check),
+                                          label: const Text('Confirm Match'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.all(16),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () => _rejectAndRetake(),
+                                          icon: const Icon(Icons.close),
+                                          label: const Text('Reject'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.all(16),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ] else ...[
+                                  // Failed: Override required
+                                  Column(
+                                    children: [
+                                      const Text(
+                                        'Match failed. Override requires justification.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: ElevatedButton.icon(
+                                              onPressed: _showOverrideDialog,
+                                              icon: const Icon(Icons.warning),
+                                              label: const Text('Override'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.orange,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: ElevatedButton.icon(
+                                              onPressed: () =>
+                                                  _rejectAndRetake(),
+                                              icon: const Icon(
+                                                Icons.camera_alt,
+                                              ),
+                                              label: const Text(
+                                                'Retake Photos',
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.blue,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -768,7 +910,7 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'This match has failed verification. Please provide a reason for overriding:',
+              'This match has failed verification. If happy with sight check, override.',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
