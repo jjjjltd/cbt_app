@@ -61,8 +61,8 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
     });
 
     try {
-      print('=== FLUTTER DEBUG ${DateTime.now()} ===');
-      print('Area of API Call for Verify-Face');
+      // print('=== FLUTTER DEBUG ${DateTime.now()} ===');
+      // print('Area of API Call for Verify-Face');
 
       const backendUrl = 'http://localhost:8000/verify-face';
       final request = http.MultipartRequest('POST', Uri.parse(backendUrl));
@@ -121,6 +121,10 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
         if (_matchScore! >= 90) {
           _verificationStatus = 'PASS - Match Verified';
           _statusColor = Colors.green;
+          // Auto-pass: proceed immediately
+          Future.delayed(const Duration(seconds: 1), () {
+            _proceedWithDecision('auto_pass');
+          });
         } else if (_matchScore! >= 50) {
           _verificationStatus = 'MANUAL CHECK REQUIRED';
           _statusColor = Colors.orange;
@@ -162,6 +166,15 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
 
       // Parse the licence data
       final parsedData = _parseUKLicence(recognizedText.text);
+
+      // Add verification metadata to parsed data
+      parsedData['verification_score'] = _matchScore;
+      parsedData['verification_decision'] = _decisionType;
+      parsedData['verification_timestamp'] = _verificationTimestamp
+          ?.toIso8601String();
+      if (_overrideReason != null) {
+        parsedData['override_reason'] = _overrideReason;
+      }
 
       // Navigate to confirmation screen
       Navigator.push(
@@ -369,17 +382,6 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
                           fontSize: 16,
                           color: _statusColor,
                           fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _proceedToDataEntry,
-                        icon: const Icon(Icons.arrow_forward),
-                        label: const Text('Proceed to Data Entry'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.all(16),
                         ),
                       ),
                     ],
@@ -677,5 +679,141 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
     }
 
     return result;
+  }
+
+  String? _decisionType;
+  String? _overrideReason;
+  DateTime? _verificationTimestamp;
+
+  void _proceedWithDecision(String decisionType) {
+    setState(() {
+      _decisionType = decisionType;
+      _verificationTimestamp = DateTime.now();
+    });
+
+    if (kIsWeb) {
+      // Web: Skip OCR, go to manual entry
+      _proceedToManualEntry();
+    } else {
+      // Mobile: Use OCR
+      _proceedToDataEntry();
+    }
+  }
+
+  Future<void> _proceedToManualEntry() async {
+    // Navigate to confirmation screen with empty parsed data
+    // User will fill in manually
+    final emptyData = {
+      'driver_number': null,
+      'full_name': null,
+      'address': null,
+      'postcode': null,
+      'date_of_birth': null,
+      'age': null,
+      'issue_date': null,
+      'expiry_date': null,
+      'verification_score': _matchScore,
+      'verification_decision': _decisionType,
+      'verification_timestamp': _verificationTimestamp?.toIso8601String(),
+      'override_reason': _overrideReason,
+    };
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentConfirmationScreen(
+          parsedData: emptyData,
+          studentPhotoPath: _studentPhotoPath!,
+          licensePhotoPath: _licensePhotoPath!,
+          sessionId: widget.sessionId,
+        ),
+      ),
+    );
+  }
+
+  void _rejectAndRetake() {
+    setState(() {
+      _studentPhotoPath = null;
+      _licensePhotoPath = null;
+      _matchScore = null;
+      _verificationStatus = null;
+      _statusColor = null;
+      _decisionType = null;
+      _overrideReason = null;
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Please retake both photos')));
+  }
+
+  void _showOverrideDialog() {
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Override Verification'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Match Score: ${_matchScore!.toStringAsFixed(1)}%',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'This match has failed verification. Please provide a reason for overriding:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Reason for Override *',
+                hintText: 'e.g., Verified ID manually, photo quality issue...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Reason is required')),
+                );
+                return;
+              }
+
+              setState(() {
+                _decisionType = 'override';
+                _overrideReason = reasonController.text.trim();
+                _verificationTimestamp = DateTime.now();
+              });
+
+              Navigator.pop(context);
+              _proceedToDataEntry();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm Override'),
+          ),
+        ],
+      ),
+    );
   }
 }
