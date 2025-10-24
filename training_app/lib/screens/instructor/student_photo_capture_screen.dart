@@ -331,6 +331,17 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
               ),
             ),
 
+            ElevatedButton.icon(
+              onPressed: _showSuspicionDialog,
+              icon: const Icon(Icons.flag),
+              label: const Text('Raise Suspicion'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.all(12),
+              ),
+            ),
+
             // Add this right after the Verify Button
             const SizedBox(height: 16),
 
@@ -883,6 +894,7 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
                 ),
               ),
             ),
+            const SizedBox(width: 8),
           ],
         ),
       ];
@@ -914,5 +926,78 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
         'buttons': ['override', 'retake'],
       };
     }
+  }
+
+  void _showSuspicionDialog() {
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Raise Identity Suspicion'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This will flag the identity verification for review.',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Reason for Suspicion *',
+                hintText:
+                    'e.g., Identity document concerns, behavioral observations...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Reason is required')),
+                );
+                return;
+              }
+
+              setState(() {
+                _decisionType = 'suspicion_raised';
+                _overrideReason = reasonController.text.trim();
+                _verificationTimestamp = DateTime.now();
+              });
+
+              Navigator.pop(context);
+              _handleSuspicionFlag();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Confirm Suspicion'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSuspicionFlag() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Identity verification flagged for review'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+
+    Navigator.pop(context);
   }
 }
