@@ -10,8 +10,7 @@ import 'dart:io';
 class CompanySettingsScreen extends StatefulWidget {
   final AuthService authService;
 
-  const CompanySettingsScreen({Key? key, required this.authService})
-      : super(key: key);
+  const CompanySettingsScreen({super.key, required this.authService});
 
   @override
   State<CompanySettingsScreen> createState() => _CompanySettingsScreenState();
@@ -78,7 +77,8 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
           _postcodeController.text = data['postcode'] ?? '';
           _phoneController.text = data['phone'] ?? '';
           _emailController.text = data['email'] ?? '';
-          _trainingBodyRefController.text = data['training_body_reference'] ?? '';
+          _trainingBodyRefController.text =
+              data['training_body_reference'] ?? '';
           // TODO: Load stamp image if path exists
           _isLoading = false;
         });
@@ -167,10 +167,7 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -192,10 +189,7 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
         title: const Text('Company Settings'),
         actions: [
           if (_hasChanges)
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveSettings,
-            ),
+            IconButton(icon: const Icon(Icons.save), onPressed: _saveSettings),
         ],
       ),
       body: _isLoading
@@ -224,7 +218,10 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                             const SizedBox(height: 8),
                             const Text(
                               'This will appear on certificates (bottom left)',
-                              style: TextStyle(fontSize: 13, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             if (_stampImageBytes != null)
@@ -254,7 +251,11 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.business, size: 48, color: Colors.grey),
+                                      Icon(
+                                        Icons.business,
+                                        size: 48,
+                                        color: Colors.grey,
+                                      ),
                                       SizedBox(height: 8),
                                       Text('No stamp/logo uploaded'),
                                     ],
@@ -265,9 +266,11 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                             ElevatedButton.icon(
                               onPressed: _pickStampImage,
                               icon: const Icon(Icons.upload),
-                              label: Text(_stampImageBytes == null
-                                  ? 'Upload Stamp/Logo'
-                                  : 'Change Stamp/Logo'),
+                              label: Text(
+                                _stampImageBytes == null
+                                    ? 'Upload Stamp/Logo'
+                                    : 'Change Stamp/Logo',
+                              ),
                             ),
                           ],
                         ),
@@ -278,7 +281,10 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                     // Company Details Section
                     const Text(
                       'Company Details',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -337,7 +343,8 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                               labelText: 'City',
                               border: OutlineInputBorder(),
                             ),
-                            onChanged: (_) => setState(() => _hasChanges = true),
+                            onChanged: (_) =>
+                                setState(() => _hasChanges = true),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -348,7 +355,8 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                               labelText: 'Postcode',
                               border: OutlineInputBorder(),
                             ),
-                            onChanged: (_) => setState(() => _hasChanges = true),
+                            onChanged: (_) =>
+                                setState(() => _hasChanges = true),
                           ),
                         ),
                       ],
@@ -402,7 +410,8 @@ class _CompanySettingsScreenState extends State<CompanySettingsScreen> {
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white),
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Text(
