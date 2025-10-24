@@ -6,11 +6,18 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'student_confirmation_screen.dart';
+import '../../models/student_enrollment_data.dart';
+import '../../services/auth_service.dart';
 
 class StudentPhotoCaptureScreen extends StatefulWidget {
   final int sessionId;
+  final AuthService authService; // ← ADD THIS LINE
 
-  const StudentPhotoCaptureScreen({super.key, required this.sessionId});
+  const StudentPhotoCaptureScreen({
+    super.key,
+    required this.sessionId,
+    required this.authService,
+  });
 
   @override
   State<StudentPhotoCaptureScreen> createState() =>
@@ -174,14 +181,36 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
       }
 
       // Navigate to confirmation screen
+      // Navigate to confirmation screen
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => StudentConfirmationScreen(
-            parsedData: parsedData,
-            studentPhotoPath: _studentPhotoPath!,
-            licensePhotoPath: _licensePhotoPath!,
+            enrollmentData: StudentEnrollmentData(
+              driverNumber: parsedData['driver_number'] ?? '',
+              surname: parsedData['surname'] ?? '',
+              forename: parsedData['forename'] ?? parsedData['full_name'] ?? '',
+              dateOfBirth: parsedData['date_of_birth'] ?? '',
+              address: parsedData['address'] ?? '',
+              postcode: parsedData['postcode'] ?? '',
+              matchScore: parsedData['match_score'] ?? _matchScore,
+              verificationDecision:
+                  parsedData['verification_decision'] ??
+                  _getVerificationDecision(_matchScore ?? 0.0)['decision'],
+              verificationTimestamp: DateTime.now(),
+              studentPhotoPath: _studentPhotoPath!,
+              licensePhotoPath: _licensePhotoPath!,
+              enrolledByInstructorId: 1, // TODO: Get from auth context
+              overrideReason: parsedData['override_reason'],
+              suspicionRaised: parsedData['suspicion_raised'],
+              suspicionReason: parsedData['suspicion_reason'],
+              isLicenceExpired: parsedData['is_licence_expired'],
+              ageRestrictionWarning: parsedData['age_restriction_warning'],
+              ocrConfidence: parsedData['ocr_confidence'],
+              manualCorrections: parsedData['manual_corrections'],
+            ),
             sessionId: widget.sessionId,
+            authService: widget.authService, // ← PASS AUTH SERVICE
           ),
         ),
       );
@@ -671,7 +700,7 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
           // Check if there's a next line that's part of the address
           if (i + 1 < lines.length &&
               !lines[i + 1].startsWith(RegExp(r'^\d'))) {
-            addressLine += ' ' + lines[i + 1].trim();
+            addressLine += ' ${lines[i + 1].trim()}';
           }
 
           // Split address and postcode by last comma
@@ -730,15 +759,27 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
       'verification_timestamp': _verificationTimestamp?.toIso8601String(),
       'override_reason': _overrideReason,
     };
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => StudentConfirmationScreen(
-          parsedData: emptyData,
-          studentPhotoPath: _studentPhotoPath!,
-          licensePhotoPath: _licensePhotoPath!,
+          enrollmentData: StudentEnrollmentData(
+            driverNumber: '',
+            surname: '',
+            forename: '',
+            dateOfBirth: '',
+            address: '',
+            postcode: '',
+            matchScore: _matchScore ?? 0.0,
+            verificationDecision: _decisionType ?? 'MANUAL_REVIEW',
+            verificationTimestamp: _verificationTimestamp ?? DateTime.now(),
+            studentPhotoPath: _studentPhotoPath!,
+            licensePhotoPath: _licensePhotoPath!,
+            enrolledByInstructorId: 1, // TODO: Get from auth context
+            overrideReason: _overrideReason,
+          ),
           sessionId: widget.sessionId,
+          authService: widget.authService, // ← PASS AUTH SERVICE
         ),
       ),
     );

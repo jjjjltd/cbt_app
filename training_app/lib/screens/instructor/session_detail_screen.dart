@@ -43,181 +43,180 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     } else {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'])),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result['error'])));
       }
     }
   }
 
   Future<void> _navigateToPhotoCaptureScreen() async {
-  final result = await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => StudentPhotoCaptureScreen(
-        sessionId: widget.sessionId,
-      ),
-    ),
-  );
-
-  if (result != null) {
-    // Photos captured and verified, now show data entry dialog
-    _showDataEntryDialog(result);
-  }
-}
-
-void _showDataEntryDialog(Map<String, dynamic> photoData) {
-  final nameController = TextEditingController();
-  final licenseController = TextEditingController();
-  final emailController = TextEditingController();
-  final phoneController = TextEditingController();
-  String bikeType = 'Manual';
-
-  // TODO: Run OCR here and pre-fill controllers
-  // For now, show empty form
-
-  showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: const Text('Confirm Student Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Show verification status
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Face Match: ${photoData['match_score'].toStringAsFixed(1)}%',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Student Name *',
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter or verify name from OCR',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: licenseController,
-                decoration: const InputDecoration(
-                  labelText: 'License Number *',
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter or verify from OCR',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: bikeType,
-                decoration: const InputDecoration(
-                  labelText: 'Bike Type',
-                  border: OutlineInputBorder(),
-                ),
-                items: ['Manual', 'Automatic'].map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setDialogState(() {
-                    bikeType = value!;
-                  });
-                },
-              ),
-            ],
-          ),
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentPhotoCaptureScreen(
+          sessionId: widget.sessionId,
+          authService: widget.authService,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  licenseController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Name and License Number required')),
-                );
-                return;
-              }
-
-              Navigator.pop(context);
-
-              final result = await _apiService.addStudentToSession(
-                sessionId: widget.sessionId,
-                name: nameController.text,
-                licenseNumber: licenseController.text,
-                email: emailController.text.isEmpty
-                    ? null
-                    : emailController.text,
-                phone: phoneController.text.isEmpty
-                    ? null
-                    : phoneController.text,
-                bikeType: bikeType,
-              );
-
-              if (result['success']) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Student added successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                _loadSession();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(result['error']),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Add Student'),
-          ),
-        ],
       ),
-    ),
-  );
-}
+    );
+
+    if (result != null) {
+      // Photos captured and verified, now show data entry dialog
+      _showDataEntryDialog(result);
+    }
+  }
+
+  void _showDataEntryDialog(Map<String, dynamic> photoData) {
+    final nameController = TextEditingController();
+    final licenseController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    String bikeType = 'Manual';
+
+    // TODO: Run OCR here and pre-fill controllers
+    // For now, show empty form
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Confirm Student Details'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Show verification status
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Face Match: ${photoData['match_score'].toStringAsFixed(1)}%',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Student Name *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter or verify name from OCR',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: licenseController,
+                  decoration: const InputDecoration(
+                    labelText: 'License Number *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Enter or verify from OCR',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: bikeType,
+                  decoration: const InputDecoration(
+                    labelText: 'Bike Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['Manual', 'Automatic'].map((type) {
+                    return DropdownMenuItem(value: type, child: Text(type));
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      bikeType = value!;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isEmpty ||
+                    licenseController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Name and License Number required'),
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context);
+
+                final result = await _apiService.addStudentToSession(
+                  sessionId: widget.sessionId,
+                  name: nameController.text,
+                  licenseNumber: licenseController.text,
+                  email: emailController.text.isEmpty
+                      ? null
+                      : emailController.text,
+                  phone: phoneController.text.isEmpty
+                      ? null
+                      : phoneController.text,
+                  bikeType: bikeType,
+                );
+
+                if (result['success']) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Student added successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _loadSession();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result['error']),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Add Student'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _completeSession() async {
     final confirm = await showDialog<bool>(
@@ -260,10 +259,7 @@ void _showDataEntryDialog(Map<String, dynamic> photoData) {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['error']),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(result['error']), backgroundColor: Colors.red),
       );
     }
   }
@@ -285,10 +281,7 @@ void _showDataEntryDialog(Map<String, dynamic> photoData) {
       appBar: AppBar(
         title: Text(sessionType),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSession,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadSession),
         ],
       ),
       body: RefreshIndicator(
@@ -315,13 +308,19 @@ void _showDataEntryDialog(Map<String, dynamic> photoData) {
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(Icons.location_on, location),
-                      _buildInfoRow(Icons.calendar_today,
-                          _session!['session_date'] ?? ''),
                       _buildInfoRow(
-                          Icons.person, _session!['instructor_name'] ?? ''),
+                        Icons.calendar_today,
+                        _session!['session_date'] ?? '',
+                      ),
+                      _buildInfoRow(
+                        Icons.person,
+                        _session!['instructor_name'] ?? '',
+                      ),
                       if (_session!['site_code'] != null)
                         _buildInfoRow(
-                            Icons.tag, 'Site: ${_session!['site_code']}'),
+                          Icons.tag,
+                          'Site: ${_session!['site_code']}',
+                        ),
                     ],
                   ),
                 ),
@@ -335,7 +334,9 @@ void _showDataEntryDialog(Map<String, dynamic> photoData) {
                   Text(
                     'Students (${students.length})',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   ElevatedButton.icon(
                     onPressed: _navigateToPhotoCaptureScreen,
@@ -357,8 +358,11 @@ void _showDataEntryDialog(Map<String, dynamic> photoData) {
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.people_outline,
-                              size: 48, color: Colors.grey[400]),
+                          Icon(
+                            Icons.people_outline,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'No students added yet',
@@ -446,9 +450,7 @@ void _showDataEntryDialog(Map<String, dynamic> photoData) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: CircleAvatar(
-          child: Text(student['name'][0].toUpperCase()),
-        ),
+        leading: CircleAvatar(child: Text(student['name'][0].toUpperCase())),
         title: Text(student['name']),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

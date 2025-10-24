@@ -246,4 +246,31 @@ class ApiService {
       return {'success': false, 'error': 'Connection error: $e'};
     }
   }
+
+  // Student Enrollment with Verification (replaces/extends addStudentToSession)
+  Future<Map<String, dynamic>> enrollStudentWithVerification({
+    required int sessionId,
+    required Map<String, dynamic> studentData,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/$sessionId/students'),
+        headers: authService.getAuthHeaders(),
+        body: json.encode(studentData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': json.decode(response.body)};
+      } else {
+        return {
+          'success': false,
+          'error':
+              json.decode(response.body)['detail'] ??
+              'Failed to enroll student',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Connection error: $e'};
+    }
+  }
 }

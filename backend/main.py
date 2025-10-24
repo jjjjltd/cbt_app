@@ -101,7 +101,24 @@ class StudentCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     date_of_birth: Optional[str] = None
-    bike_type: Optional[str] = None
+    bike_type: str = "Manual"
+    
+    # Add verification fields
+    student_photo_path: Optional[str] = None
+    license_photo_path: Optional[str] = None
+    face_match_score: Optional[float] = None
+    verification_decision: Optional[str] = None  # auto_pass, manual_confirm, override, suspicion_raised
+    verification_timestamp: Optional[str] = None
+    override_reason: Optional[str] = None
+    
+    # Add OCR extracted fields
+    extracted_address: Optional[str] = None
+    extracted_postcode: Optional[str] = None
+    extracted_driver_number: Optional[str] = None
+    issue_date: Optional[str] = None
+    expiry_date: Optional[str] = None
+    calculated_age: Optional[int] = None
+    license_valid: Optional[bool] = None
 
 class TaskComplete(BaseModel):
     task_id: str

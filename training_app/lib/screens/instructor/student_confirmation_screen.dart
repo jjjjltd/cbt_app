@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import '../../models/student_enrollment_data.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 
 class StudentConfirmationScreen extends StatefulWidget {
-  final Map<String, dynamic> parsedData;
-  final String studentPhotoPath;
-  final String licensePhotoPath;
+  final StudentEnrollmentData enrollmentData;
   final int sessionId;
+  final AuthService authService; // ← ADD THIS LINE
 
   const StudentConfirmationScreen({
     super.key,
-    required this.parsedData,
-    required this.studentPhotoPath,
-    required this.licensePhotoPath,
+    required this.enrollmentData,
     required this.sessionId,
+    required this.authService, // ← ADD THIS LINE
   });
 
   @override
@@ -25,8 +26,8 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
   final _emergencyNameController = TextEditingController();
   final _emergencyPhoneController = TextEditingController();
   String _bikeType = 'Manual';
-
   bool _showAdditionalFields = false;
+  bool _isSubmitting = false; // ← ADD THIS LINE
 
   @override
   void dispose() {
@@ -47,7 +48,13 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
 
     // TODO: Call API to save student with all data
     // For now, just show success and go back
-
+    print('Sending photos:');
+    print(
+      'Student: ${widget.enrollmentData.studentPhotoPath.substring(0, 50)}...',
+    );
+    print(
+      'License: ${widget.enrollmentData.licensePhotoPath.substring(0, 50)}...',
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Student enrolled successfully'),
@@ -117,17 +124,22 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
               ),
               const SizedBox(height: 16),
 
-              _buildDataCard('Full Name', widget.parsedData['full_name']),
-              _buildDataCard('Address', widget.parsedData['address']),
-              _buildDataCard('Postcode', widget.parsedData['postcode']),
+              _buildDataCard(
+                'Full Name',
+                '${widget.enrollmentData.forename} ${widget.enrollmentData.surname}',
+              ),
+              _buildDataCard('Address', widget.enrollmentData.address),
+              _buildDataCard('Postcode', widget.enrollmentData.postcode),
               _buildDataCard(
                 'Date of Birth',
-                widget.parsedData['date_of_birth'],
+                widget.enrollmentData.dateOfBirth,
               ),
-              _buildDataCard('Age', '${widget.parsedData['age']} years'),
-
+              _buildDataCard(
+                'Age',
+                'Calculated from DOB',
+              ), // TODO: Calculate age from dateOfBirth
               // Age 16 Warning
-              if (widget.parsedData['age_warning'] != null)
+              if (widget.enrollmentData.ageRestrictionWarning == true)
                 Card(
                   color: Colors.orange.shade50,
                   child: Padding(
@@ -138,7 +150,8 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            widget.parsedData['age_warning'],
+                            const Text('16 year old - AUTOMATIC Only!!')
+                                as String,
                             style: const TextStyle(
                               color: Colors.orange,
                               fontWeight: FontWeight.bold,
@@ -152,13 +165,18 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
 
               _buildDataCard(
                 'Driver Number',
-                widget.parsedData['driver_number'],
+                widget.enrollmentData.driverNumber,
               ),
-              _buildDataCard('Issue Date', widget.parsedData['issue_date']),
-              _buildDataCard('Expiry Date', widget.parsedData['expiry_date']),
-
+              _buildDataCard(
+                'Issue Date',
+                'N/A',
+              ), // Not in model yet - add if needed
+              _buildDataCard(
+                'Expiry Date',
+                'N/A',
+              ), // Not in model yet - add if needed
               // Licence Validity Warning
-              if (widget.parsedData['validation_warning'] != null)
+              if (widget.enrollmentData.isLicenceExpired == true)
                 Card(
                   color: Colors.red.shade50,
                   child: Padding(
@@ -169,7 +187,8 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            widget.parsedData['validation_warning'],
+                            const Text('License Expired - Cannot proceed!')
+                                as String,
                             style: const TextStyle(
                               color: Colors.red,
                               fontWeight: FontWeight.bold,
@@ -264,7 +283,7 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  value: _bikeType,
+                  initialValue: _bikeType,
                   decoration: const InputDecoration(
                     labelText: 'Bike Type',
                     border: OutlineInputBorder(),
@@ -333,5 +352,38 @@ class _StudentConfirmationScreenState extends State<StudentConfirmationScreen> {
         ),
       ),
     );
+  }
+
+  // Add this method to _StudentConfirmationScreenState class
+  Future<void> _submitEnrollment() async {
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final apiService = ApiService(
+      widget.authService,
+    ); // You'll need to pass authService
+
+    final result = await apiService.enrollStudentWithVerification(
+      sessionId: widget.sessionId,
+      studentData: widget.enrollmentData.toJson(),
+    );
+
+    setState(() {
+      _isSubmitting = false;
+    });
+
+    if (result['success']) {
+      // Success! Show message and navigate back
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Student enrolled successfully')),
+      );
+      Navigator.of(context).pop();
+    } else {
+      // Error - show message
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${result['error']}')));
+    }
   }
 }

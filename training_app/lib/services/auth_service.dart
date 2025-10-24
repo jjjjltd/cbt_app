@@ -1,8 +1,8 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../models/user.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
+import 'package:training_app/models/user.dart';
 
 class AuthService {
   // TODO: Change this to your backend URL
