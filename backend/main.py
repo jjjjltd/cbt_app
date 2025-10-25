@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import BackgroundTasks
+from fastapi import Form, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import face_recognition
@@ -772,34 +772,32 @@ async def verify_face(
         tolerance = 0.6
         is_match = bool(face_distance < tolerance)  # ← Convert to bool
 
-    background_tasks.add_task(
-        save_student_photos,
-        session_id=session_id,
-        driver_number=driver_number,
-        student_photo_data=student_img_data,
-        license_photo_data=license_img_data,
-        ocr_data={
-            "surname": surname,
-            "forename": forename,
-            "date_of_birth": date_of_birth,
-            "address": address,
-            "postcode": postcode
-        },
-        match_score=match_score,
-        face_distance=face_distance
-    )
-
-
+        background_tasks.add_task(
+            save_student_photos,
+            session_id=session_id,
+            driver_number=driver_number,
+            student_photo_data=student_img_data,
+            license_photo_data=license_img_data,
+            ocr_data={
+                "surname": surname,
+                "forename": forename,
+                "date_of_birth": date_of_birth,
+                "address": address,
+                "postcode": postcode
+            },
+            match_score=match_score,
+            face_distance=face_distance
+        )
+    
         return {
             "match_score": round(float(match_score), 2),  # ← Ensure float
             "face_distance": round(float(face_distance), 3),  # ← Ensure float
             "is_match": is_match,
             "confidence": "high" if face_distance < 0.4 else "medium" if face_distance < 0.6 else "low",
-            "status": "success"
+            "status": "success",
+            "Photo saved": "queued"
         }
     
-
-
     except HTTPException:
         raise
     except Exception as e:
@@ -1067,6 +1065,61 @@ async def get_all_sessions(current_admin: dict = Depends(require_admin)):
         return {"sessions": sessions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def save_student_photos(
+    session_id: int,
+    driver_number: str,
+    student_photo_data: bytes,
+    license_photo_data: bytes,
+    ocr_data: dict,
+    match_score: float,
+    face_distance: float
+):
+    """Background task to save photos and OCR data to database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Insert into student_photos table
+        cursor.execute("""
+            INSERT INTO student_photos (
+                session_id,
+                driver_number,
+                student_photo,
+                license_photo,
+                surname,
+                forename,
+                date_of_birth,
+                address,
+                postcode,
+                match_score,
+                face_distance,
+                capture_timestamp
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            session_id,
+            driver_number,
+            student_photo_data,  # Store as BYTEA
+            license_photo_data,  # Store as BYTEA
+            ocr_data['surname'],
+            ocr_data['forename'],
+            ocr_data['date_of_birth'],
+            ocr_data['address'],
+            ocr_data['postcode'],
+            match_score,
+            face_distance,
+            datetime.now()
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"✅ Photos saved for driver {driver_number} in session {session_id}")
+        
+    except Exception as e:
+        print(f"❌ Error saving photos: {e}")
+        # Don't raise - this is background task, shouldn't break main flow
 
 if __name__ == "__main__":
     import uvicorn
