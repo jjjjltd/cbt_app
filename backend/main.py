@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import face_recognition
@@ -688,10 +689,21 @@ async def update_tasks(session_type: str, data: dict,
 # ============================================================================
 
 @app.post("/verify-face")
-async def verify_face(student_photo: UploadFile = File(...),
-                     license_photo: UploadFile = File(...)):
-    """Verify if student photo matches license photo using face cropping for better accuracy"""
+async def verify_face(
+    background_tasks: BackgroundTasks,
+    student_photo: UploadFile = File(...),
+    license_photo: UploadFile = File(...),
+    session_id: int = Form(...),
+    driver_number: str = Form(...),
+    surname: str = Form(...),
+    forename: str = Form(...),
+    date_of_birth: str = Form(...),
+    address: str = Form(...),
+    postcode: str = Form(...)
+):
+    """Verify face match and save photos asynchronously"""
     try:
+        # Read photo data
         student_img_data = await student_photo.read()
         license_img_data = await license_photo.read()
         
@@ -760,6 +772,24 @@ async def verify_face(student_photo: UploadFile = File(...),
         tolerance = 0.6
         is_match = bool(face_distance < tolerance)  # ← Convert to bool
 
+    background_tasks.add_task(
+        save_student_photos,
+        session_id=session_id,
+        driver_number=driver_number,
+        student_photo_data=student_img_data,
+        license_photo_data=license_img_data,
+        ocr_data={
+            "surname": surname,
+            "forename": forename,
+            "date_of_birth": date_of_birth,
+            "address": address,
+            "postcode": postcode
+        },
+        match_score=match_score,
+        face_distance=face_distance
+    )
+
+
         return {
             "match_score": round(float(match_score), 2),  # ← Ensure float
             "face_distance": round(float(face_distance), 3),  # ← Ensure float
@@ -767,6 +797,8 @@ async def verify_face(student_photo: UploadFile = File(...),
             "confidence": "high" if face_distance < 0.4 else "medium" if face_distance < 0.6 else "low",
             "status": "success"
         }
+    
+
 
     except HTTPException:
         raise

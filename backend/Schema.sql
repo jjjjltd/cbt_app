@@ -345,3 +345,33 @@ BEGIN
     SET status = 'EXHAUSTED'
     WHERE batch_id = NEW.batch_id AND certificates_remaining = 0;
 END;
+
+CREATE TABLE IF NOT EXISTS student_photos (
+    photo_id SERIAL PRIMARY KEY,
+    session_id INTEGER NOT NULL REFERENCES training_sessions(session_id),
+    driver_number VARCHAR(16) NOT NULL,
+    
+    -- Photo storage (BYTEA for binary data)
+    student_photo BYTEA NOT NULL,
+    license_photo BYTEA NOT NULL,
+    
+    -- OCR extracted data
+    surname VARCHAR(100),
+    forename VARCHAR(100),
+    date_of_birth VARCHAR(20),
+    address TEXT,
+    postcode VARCHAR(10),
+    
+    -- Verification results
+    match_score DECIMAL(5,2),
+    face_distance DECIMAL(5,3),
+    
+    -- Metadata
+    capture_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Index for lookups
+    CONSTRAINT unique_driver_session_photo UNIQUE (driver_number, session_id)
+);
+
+CREATE INDEX idx_student_photos_session ON student_photos(session_id);
+CREATE INDEX idx_student_photos_driver ON student_photos(driver_number);
