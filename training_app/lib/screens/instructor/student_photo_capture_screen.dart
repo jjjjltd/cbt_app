@@ -33,6 +33,7 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
   double? _matchScore;
   String? _verificationStatus;
   Color? _statusColor;
+  Map<String, dynamic> _parsedData = {};
 
   Future<void> _takePhoto(bool isStudent) async {
     final XFile? photo = await _picker.pickImage(
@@ -113,6 +114,17 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
         );
       }
 
+      // After adding photo files, add OCR data
+      request.fields['session_id'] = widget.sessionId.toString();
+      request.fields['driver_number'] = _parsedData['driver_number'] ?? '';
+      request.fields['surname'] = _parsedData['surname'] ?? '';
+      request.fields['forename'] =
+          _parsedData['forenames'] ??
+          ''; // Note: 'forenames' plural in your map
+      request.fields['date_of_birth'] = _parsedData['date_of_birth'] ?? '';
+      request.fields['address'] = _parsedData['address'] ?? '';
+      request.fields['postcode'] = _parsedData['postcode'] ?? '';
+
       print('Sending request to: $backendUrl');
       final response = await request.send();
       print('Response status: ${response.statusCode}');
@@ -170,6 +182,10 @@ class _StudentPhotoCaptureScreenState extends State<StudentPhotoCaptureScreen> {
 
       // Parse the licence data
       final parsedData = _parseUKLicence(recognizedText.text);
+
+      setState(() {
+        _parsedData = parsedData; // ← Store in state
+      });
 
       // Add verification metadata to parsed data
       parsedData['verification_score'] = _matchScore;
